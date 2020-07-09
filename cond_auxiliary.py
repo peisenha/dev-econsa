@@ -11,14 +11,14 @@ def cond_gaussian_copula(cov, dependent_ind, given_ind, given_value_u):
 
     assert np.all((given_value_u >= 0) & (given_value_u <= 1)), "sanitize your inputs!"
 
-    given_value_y = [float(norm().ppf(u)) for u in given_value_u]
+    given_value_y = norm().ppf(given_value_u)
 
     means = np.zeros(cov.shape[0])
     cond_mean, cond_cov = cond_mvn(means, cov2corr(cov), dependent_ind, given_ind, given_value_y)
 
     cond_dist = multivariate_norm(cond_mean, cond_cov)
     cond_draw = np.atleast_1d(cond_dist.rvs())
-    cond_quan = [norm.cdf(draw) for draw in cond_draw]
+    cond_quan = norm.cdf(cond_draw)
 
     return np.atleast_1d(cond_quan)
 
