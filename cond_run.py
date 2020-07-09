@@ -1,33 +1,49 @@
-import numpy as np
+from scipy.stats import multivariate_normal as multivariate_norm
+from econsa.sampling import cond_mvn
 import chaospy as cp
+import numpy as np
 
-from cond_auxiliary import cond_gaussian_copula
+from cond_auxiliary import cond_gaussian_copula, cov2corr
 
-# We specify the marginals for our variables.
-marginals = list()
-for center in [1230, 0.0135, 2.15]:
-    lower, upper = 0.9 * center, 1.1 * center
-    marginals.append(cp.Uniform(lower, upper))
-distribution = cp.J(*marginals)
 
-np.random.seed(123)
+for _ in range(100):
+    np.random.seed(_)
 
-# Specification of  gaussian copula
-corr = np.array([[1.0, 0.5, 0.2],
-                 [0.5, 1.0, 0.4],
-                 [0.2, 0.4, 1.0]])
+    # TODO: SOme test failures when increaseing dimeniosn further.
+    dim = 2
+    means = np.random.uniform(-100, 100, dim)
 
-sample = np.array([None, 1.30536798e-02, 1.95678248e+00])
-dependent_ind, given_value, given_ind = [0], sample[1:], [1, 2]
+    sigma = np.random.normal(size=(dim, dim))
+    cov = sigma @ sigma.T
 
-given_value_u = [distribution[ind].cdf(given_value[i]) for i, ind in enumerate(given_ind)]
-condi_value_u = cond_gaussian_copula(corr, dependent_ind, given_ind, given_value_u)
+    marginals = list()
+    for i in range(dim):
+        mean, sigma = means[i], np.sqrt(cov[i, i])
+        marginals.append(cp.Normal(mu=mean, sigma=sigma))
+    distribution = cp.J(*marginals)
 
-# Now we apply the variable's marginal distribution.
-rslt = np.tile(np.nan, len(dependent_ind))
-for i, ind in enumerate(dependent_ind):
-    dist, value_u = distribution[ind], condi_value_u[i]
-    stat = float(dist.inv(value_u))
-    rslt[i] = stat
+    sample = distribution.sample(1).T[0]
 
-np.testing.assert_almost_equal(rslt[0], 1137.5819290382278)
+    full = list(range(0, dim))
+    dependent_ind = [np.random.choice(full)]
+
+    given_ind = full[:]
+    given_ind.remove(dependent_ind[0])
+
+    given_value = sample[given_ind]
+
+
+    np.testing.assert_almost_equal(np.linalg.inv(np.linalg.inv(cov)), cov)
+
+    np.random.seed(123)
+    given_value_u = [distribution[ind].cdf(given_value[i]) for i, ind in enumerate(given_ind)]
+    condi_value_u = cond_gaussian_copula(cov, dependent_ind, given_ind, given_value_u)
+    gc_value = distribution[int(dependent_ind[0])].inv(condi_value_u)
+
+    np.random.seed(123)
+    cond_mean, cond_cov = cond_mvn(means, cov, dependent_ind, given_ind, given_value)
+    cond_dist = multivariate_norm(cond_mean, cond_cov)
+    cn_value = np.atleast_1d(cond_dist.rvs())
+
+    np.testing.assert_almost_equal(cn_value, gc_value)
+

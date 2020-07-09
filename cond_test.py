@@ -30,7 +30,6 @@ for _ in range(5000):
     given_ind.remove(dependent_ind[0])
     given_value = sample[given_ind]
 
-
     np.random.seed(123)
     given_value_u = [distribution[ind].cdf(given_value[i]) for i, ind in enumerate(given_ind)]
     condi_value_u = cond_gaussian_copula(cov, dependent_ind, given_ind, given_value_u)
