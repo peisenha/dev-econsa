@@ -14,7 +14,7 @@ def cond_gaussian_copula(cov, dependent_ind, given_ind, given_value_u):
     given_value_y = norm().ppf(given_value_u)
 
     means = np.zeros(cov.shape[0])
-    cond_mean, cond_cov = cond_mvn(means, cov2corr(cov), dependent_ind, given_ind, given_value_y)
+    cond_mean, cond_cov = cond_mvn(means, _cov2corr(cov), dependent_ind, given_ind, given_value_y)
 
     cond_dist = multivariate_norm(cond_mean, cond_cov)
     cond_draw = np.atleast_1d(cond_dist.rvs())
@@ -23,7 +23,7 @@ def cond_gaussian_copula(cov, dependent_ind, given_ind, given_value_u):
     return np.atleast_1d(cond_quan)
 
 
-def cov2corr(cov, return_std=False):
+def _cov2corr(cov, return_std=False):
     """
     Convert covariance matrix to correlation matrix
 

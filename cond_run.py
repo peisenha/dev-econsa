@@ -1,20 +1,28 @@
 from scipy.stats import multivariate_normal as multivariate_norm
-from econsa.sampling import cond_mvn
 import chaospy as cp
 import numpy as np
 
-from cond_auxiliary import cond_gaussian_copula, cov2corr
-
-
-for _ in range(100):
+from econsa.sampling import cond_mvn
+from scipy.stats import invwishart, invgamma
+from cond_auxiliary import cond_gaussian_copula
+#
+for _ in range(1000):
+    print(_)
     np.random.seed(_)
 
-    # TODO: SOme test failures when increaseing dimeniosn further.
-    dim = 2
+    dim = np.random.randint(2, 10)
     means = np.random.uniform(-100, 100, dim)
 
     sigma = np.random.normal(size=(dim, dim))
     cov = sigma @ sigma.T
+
+    while True:
+        cov = invwishart(dim, np.identity(dim)).rvs()
+        try:
+            np.testing.assert_almost_equal(np.linalg.inv(np.linalg.inv(cov)), cov)
+            break
+        except AssertionError:
+            pass
 
     marginals = list()
     for i in range(dim):
@@ -28,12 +36,13 @@ for _ in range(100):
     dependent_ind = [np.random.choice(full)]
 
     given_ind = full[:]
+
+    # TODO: This test always treats the first element as given. We need it to be more
+    #  flexible and select random subets.
     given_ind.remove(dependent_ind[0])
 
     given_value = sample[given_ind]
 
-
-    np.testing.assert_almost_equal(np.linalg.inv(np.linalg.inv(cov)), cov)
 
     np.random.seed(123)
     given_value_u = [distribution[ind].cdf(given_value[i]) for i, ind in enumerate(given_ind)]
@@ -45,5 +54,6 @@ for _ in range(100):
     cond_dist = multivariate_norm(cond_mean, cond_cov)
     cn_value = np.atleast_1d(cond_dist.rvs())
 
-    np.testing.assert_almost_equal(cn_value, gc_value)
+    print(dim)
+    np.testing.assert_allclose(cn_value, gc_value, rtol=1e-4)
 
