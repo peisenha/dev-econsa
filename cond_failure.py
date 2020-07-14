@@ -22,8 +22,7 @@ for i in range(dim):
     marginals.append(cp.Normal(mu=mean, sigma=sigma))
 distribution = cp.J(*marginals)
 
-# Fix?
-# np.random.seed(16)
+np.random.seed(16)
 sample = distribution.sample(1).T[0]
 
 full = list(range(0, dim))
