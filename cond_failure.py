@@ -22,6 +22,8 @@ for i in range(dim):
     marginals.append(cp.Normal(mu=mean, sigma=sigma))
 distribution = cp.J(*marginals)
 
+# Fix?
+# np.random.seed(16)
 sample = distribution.sample(1).T[0]
 
 full = list(range(0, dim))
@@ -29,8 +31,8 @@ dependent_ind = [np.random.choice(full)]
 
 given_ind = full[:]
 
-# TODO: This test always treats the first element as given. We need it to be more
-#  flexible and select random subsets.
+# TODO: This test always treats the first element as given.
+# We need it to be more flexible and select random subsets.
 given_ind.remove(dependent_ind[0])
 
 given_value = sample[given_ind]
